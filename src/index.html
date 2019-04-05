@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>General playground</title>
+</head>
+
+<body onload="start()">
+
+<div>
+    <button onclick="start()">Start</button>
+    <button onclick="stop()">Stop</button>
+</div>
+<div id="container" style="width: 90vw; height: 90vh"></div>
+
+<script src="lib/threejs/build/three.js"></script>
+<script src="lib/threejs/controls/OrbitControls.js"></script>
+<script src="lib/WebGL.js"></script>
+<script src="lib/anime.min.js"></script>
+<script src="lib/randomcolor.js"></script>
+<script src="demo.js"></script>
+
+<script>
+
+  document.addEventListener('visibilitychange', () => {
+    stop();
+  });
+
+  const stockIds = new Array(100).fill(0).map((it, idx) => `stock-${idx}`);
+
+  const locIds = new Array(14).fill(0).map((it, idx) => `location-${idx}`);
+
+  
+  const seed = 12;
+  
+  const articleColors = [
+    ...randomColor({count: 5, luminosity: 'medium', seed, hue: 'blue'}),
+    ...randomColor({count: 5, luminosity: 'medium', seed, hue: 'green'}),
+    ...randomColor({count: 5, luminosity: 'medium', seed, hue: 'red'}),
+    ...randomColor({count: 3, luminosity: 'medium', seed, hue: 'yellow'}),
+    ...randomColor({count: 3, luminosity: 'medium', seed, hue: 'purple'}),
+    ];
+  
+  /**
+   *
+   * @type {rocklog.vis.StorageVis}
+   */
+  const input = {
+    locations: [
+      {id: locIds[0], pos: {x: -6, y: 0, z: 0}, dim: {x: 4, y: 2, z: 2}},
+      {id: locIds[1], pos: {x: -6, y: 2, z: 0}, dim: {x: 4, y: 2, z: 2}},
+
+      {id: locIds[2], pos: {x: -6, y: 0, z: -4}, dim: {x: 4, y: 2, z: 2}},
+      {id: locIds[3], pos: {x: -6, y: 2, z: -4}, dim: {x: 4, y: 2, z: 2}},
+
+      {id: locIds[4], pos: {x: 0, y: 0, z: 0}, dim: {x: 4, y: 2, z: 2}},
+      {id: locIds[5], pos: {x: 0, y: 2, z: 0}, dim: {x: 4, y: 2, z: 2}},
+
+      {id: locIds[6], pos: {x: 0, y: 0, z: -4}, dim: {x: 4, y: 2, z: 2}},
+      {id: locIds[7], pos: {x: 0, y: 2, z: -4}, dim: {x: 4, y: 2, z: 2}},
+
+      {id: locIds[8], pos: {x: 6, y: 0, z: 0}, dim: {x: 4, y: 2, z: 2}},
+      {id: locIds[9], pos: {x: 6, y: 2, z: 0}, dim: {x: 4, y: 2, z: 2}},
+
+      {id: locIds[10], pos: {x: 6, y: 0, z: -4}, dim: {x: 4, y: 2, z: 2}},
+      {id: locIds[11], pos: {x: 6, y: 2, z: -4}, dim: {x: 4, y: 2, z: 2}},
+
+      // {id: "loc3", pos: {x: 1, y: 0, z: 3}, dim: {x: 7, y: 1, z: 2}},
+      // {id: "loc4", pos: {x: 1, y: 1, z: 3}, dim: {x: 7, y: 1, z: 2}},
+
+      {id: locIds[12], pos: {x: 1, y: 0, z: 5}, dim: {x: 5, y: 1, z: 5}},
+      {id: locIds[13], pos: {x: -5, y: 0, z: 5}, dim: {x: 5, y: 1, z: 5}},
+    ],
+    stocks: [],
+  };
+
+  let viz = new visualisation.StorageViz({
+    container: document.getElementById("container"),
+    data: input,
+  });
+
+  function start() {
+    viz.start();
+
+    let free = stockIds.concat();
+    let added = [];
+    let phaseLen = 1000;
+    let phase = -phaseLen;
+
+    const next = () => {
+
+      const action = THREE.Math.randInt(0, 2);
+
+      if (phase++ > phaseLen) {
+        phase = -phase; 
+      }
+      
+      switch (action) {
+        // update
+        case 0: {
+          if (added.length === 0) {
+            break;
+          }
+
+          const stock = added[THREE.Math.randInt(0, added.length - 1)];
+
+          viz.getScenery().updateStock(stock);
+
+          break;
+        }
+        // add or remove 
+        case 1: 
+        case 2: {
+
+          const rnd = THREE.Math.randInt(-phaseLen, phaseLen);
+          
+          if (rnd + phase < 0) {
+
+            // add
+            
+            if (free.length === 0) {
+              break;
+            }
+
+            const id = free[THREE.Math.randInt(0, free.length - 1)];
+            const locId = locIds[THREE.Math.randInt(0, locIds.length - 1)];
+            const color = articleColors[THREE.Math.randInt(0, articleColors.length -1)];
+            
+            free = free.filter(it => it !== id);
+
+            const stock = {id, locId, color};
+            added.push(stock);
+
+            viz.getScenery().addStock(stock);
+            
+          } else {
+            
+            // remove
+
+            if (added.length === 0) {
+              break;
+            }
+
+            const stock = added[THREE.Math.randInt(0, added.length - 1)];
+
+            added = added.filter(it => it !== stock);
+            free.push(stock.id);
+
+            viz.getScenery().removeStockById(stock.id);
+          }
+
+          break;
+        }
+      }
+
+      setTimeout(() => next(), THREE.Math.randInt(10, 50));
+    };
+
+    next();
+  }
+
+  function stop() {
+    viz.stop();
+  }
+
+</script>
+
+</body>
+
+</html>
